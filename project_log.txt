@@ -1,0 +1,138 @@
+Author: Chance Brownfield
+Email: ChanceBrownfield@protonmail.com
+***************************************************
+A.D.A.M project script descriptions and change-log.
+***************************************************
+Scripts-
+
+main.py:
+"This script manages user interactions through speech and controls the conversation flow based on the detected wake words and user profiles."
+
+Brain.py:
+"Here's a breakdown of what this script does:
+1. It generates a transcription of the audio file using the generate_transcription function.
+2. It checks if there are any executable commands in the transcription and executes them if found.
+3. If no commands are found, it updates the user's bio and gathers information about the current date and time, the bot and user details, and the user's biography from a file.
+4. It takes a screenshot and snapshot using the optics function, and analyzes the sentiment and emotion in the user's input using the limbic function.
+5. It gathers information from the web using the gather_web_info function and gathers system information using the gather_system_info function.
+6. It constructs a prompt, instruction, and knowledge based on the gathered information and the user's input.
+7. It generates a response using the response function.
+8. It converts the response text into an image using the text_to_pic function and then back to text using the pic_to_text function.
+9. It updates the user and bot's history with the input, response, and other details.
+10. Finally, it responds to the user using the respond function with the text and image. EDIT: this is now a video response
+In summary, the Brain function processes user input, generates a response, and updates user and bot histories based on the interaction."
+
+respond.py:
+"this script serves as a comprehensive tool for voice and text processing, including voice selection, audio file handling, transcription, model training, and speech synthesis. EDIT: This script also generates a video response from a prompt, a response, and an image. The function uses various modules and tools such as Stable Video Diffusion, Pix2Pix, and pygame to create and play the video of the bot avatar giving the response in the bottom left corner if the response is over 10 seconds long it will also display an image to visualize the response itself just above the video and the video itself includes subtitles in case you cant hear the audio for some reason."
+
+Optics.py:
+"This script uses the OpenCV library to capture a screenshot and, if the device has a camera, a snapshot from the camera. If a camera is available, it captures a snapshot using the camera and then converts the screenshot and snapshot into text"
+
+IMPORTS.py:
+"This script includes importing modules, defining a list of commands with associated actions, and defining a map of actions to their corresponding arguments."
+
+response.py:
+"This script defines two functions: "response" and "command_response". These functions use a pre-trained language model to generate responses based on input instructions, context, knowledge, and dialogue. After generating the response, the function updates the conversation history for both the user and the bot.
+The script utilizes the Hugging Face Transformers library to load a pre-trained sequence-to-sequence language model called "microsoft/GODEL-v1_1-base-seq2seq". This model is used to generate text-based responses."
+
+Motor.py:
+"This script executes commands based on audio input. It imports some modules and defines a function called execute_commands that takes three parameters: audio_text, user_profile, and bot_profile. Within this function, it looks for commands in the text and triggers corresponding actions. It also checks for custom commands from the user profile. If no basic command is executed, it checks for and executes shortcuts it does this by checking for folders or files in the "COMMANDS" folder mentioned in the text and checks in that folder or executes that file."
+
+idle.py:
+"This script defines a function called "idle_settings" which prompts the user to enable or disable idle chat. Based on the user's response, it either creates or deletes a file called "idle.txt."
+The "idle" function selects random wake words, retrieves a random unanswered question from Reddit, and then triggers the "idle_brain" function to generate a response based on the retrieved question.
+The "post_answer_to_reddit" function attempts to find a Reddit post based on the question and then posts the answer and an image as a reply to that post.
+The "get_random_unanswered_question_from_reddit" function fetches a random unanswered question from Reddit using the praw library.
+The "idle_brain" function handles the actual processing of the question"
+
+import_mods.py:	
+"This script contains several functions for managing imports of Python modules and merging them into existing code.
+The extract_imports function parses the content of a Python file and extracts the import statements, returning them as a single string.
+The merge_imports function reads the contents of two Python files and merges the import statements, as well as the COMMANDS and MAP sections, writing the merged content back to the destination file. It also merges the description files and notifies the user of the successful merge or any errors.
+The merge_descriptions function reads the content of a description file from a source Python module and appends it to the existing content of a destination description file.
+The import_new_mod function reads the description of a new module, asks the user if it's for everyone, then determines the target IMPORTS.py file based on the user's preference and merges the new module into the destination file.
+The install_mod function prompts the user to input a mod name, then installs the mod by importing it as either a global or user-specific module.
+Finally, the import_user_imports function imports a user's custom COMMANDS and MAP from their designated IMPORTS.py file for use in the program."
+
+texttopic.py:
+"This script contains a Python function called text_to_pic. This function takes a text input and uses a pre-trained AI model called BigGAN to generate an image based on the input text.
+First, the code loads the BigGAN model and then generates an image from the text using the model. It does this by creating a noise vector and text embedding, and then passing them to the BigGAN decoder to produce the image.
+Next, the code converts the generated image to a format suitable for the "DeepDream" process. It loads a pre-trained InceptionV3 model for DeepDream and applies the DeepDream process to the generated image.
+Finally, the DeepDream image is saved and returned as the output of the function."
+
+pictotext.py:
+"This script is designed to take an image as input and convert it into text using different techniques. Here's a breakdown of its functionality:
+It uses the CLIP model to generate a textual description of the image. CLIP is a neural network that can understand and generate captions for images.
+It utilizes EasyOCR to perform Optical Character Recognition (OCR), which extracts text from the image using a pre-trained model.
+It also uses pytesseract for OCR, which is another tool for extracting text from images using Tesseract, an OCR engine.
+Additionally, it employs HTRPipeline, which stands for Handwritten Text Recognition Pipeline, to extract structured text from handwritten content in the image.
+Finally, the script combines the results from all these techniques and returns a comprehensive text description of the image, including the image caption from CLIP, text recognized by EasyOCR, text recognized by pytesseract, and structured text recognized by HTRPipeline."
+
+is_personal.py:
+"This script takes a piece of text as input and uses a FastText model to predict if the text is personal or not based on some labeled training data. The script loads a pre-trained FastText model, makes a prediction on the input text, and then checks if the predicted label is 'personal'. If the label is 'personal', the function returns True; otherwise, it returns False. This script is used to determine if a given text contains personal information."
+
+functions.py:
+"This script contains several functions that serve different purposes.
+list_available_commands: This function lists available commands for the bot to perform. It looks for commands in the 'Mods' folder and the user's profile folder. If no commands are found, it responds with a message saying "I currently have no available commands." If commands are found, it lists them along with their descriptions.
+toggle_lockdown: This function toggles the lockdown status of the bot. If the lockdown file exists, it removes it (deactivating lockdown). If the lockdown file doesn't exist, it creates it (activating lockdown). It responds with "Lockdown activated." or "Lockdown deactivated." based on the action performed.
+lock_bot: This function creates an empty file named 'lock' in the bot's profile folder, effectively locking the bot.
+unlock_bot: This function removes the 'lock' file from the bot's profile folder, effectively unlocking the bot. If the 'lock' file doesn't exist, it does nothing."
+
+Pineal.py:
+"This script includes several functions for information extraction and question formulation. Here's a breakdown of what the code does:
+The script has functions to extract information from websites like Google, Wikipedia, Bing, Yahoo, Reddit, StackExchange, and e-commerce sites like Amazon and Walmart.
+It also uses natural language processing to summarize and extract key sentences from text. This involves using libraries like NLTK, spaCy, and Gensim.
+The script can gather system information such as operating system details, CPU, memory, disk usage, network connections, GPU information, and more.
+It also includes functions for formulating questions based on entities found in the input text.
+Overall, Pineal.py is a comprehensive script that combines web scraping, natural language processing, and system information gathering to provide a wide range of functionalities for information extraction and analysis."
+
+Temporal.py:
+"This script includes various functions for speech and audio processing. Audio Processing: There are functions for processing raw audio data obtained from user input, such as cleaning the audio and extracting features like Mel-frequency cepstral coefficients (MFCC) to be used for speaker and speech recognition.
+Speaker Recognition: The script uses a pre-trained model for speaker recognition from the SpeechBrain library to get embeddings and help identify speakers based on their voice characteristics.
+Model Training: Functions are provided to train user-specific Gaussian Mixture Models (GMM) for audio and embeddings, as well as to update general GMMs based on user data.
+User Identification: The script contains functions to identify speakers based on their voice characteristics and compare the likelihood of a speaker's identity with existing user profiles. Overall, the Temporal.py script covers a wide range of functionalities related to audio and speaker processing, including user identification"
+
+mod_builder.py:
+"This script contains a set of functions for building a Python mod. Here's a breakdown of the main functions and concepts in the code:
+The generate_python_script_XXXX functions are using different transformer-based models to generate Python scripts based on the input text. These models are from the Hugging Face transformers library the codes they generate are fed to the "microsoft/GODEL-v1_1-base-seq2seq" as "knowledge" and GODEL uses these suggestions to generate the final output.
+The listen_for_wake_word function uses the speech_recognition library to listen for a specific wake word (in this case, "scriptor") from the user's voice input. This function is used for voice interaction.
+The extract_script function takes a text as input and uses a regular expression to find and extract a Python script enclosed within *** delimiters.
+The update_script function handles the logic for updating a Python script within a mod. It uses the response from a bot, extracts the script from the response, creates backups of existing files, and saves log files.
+The mod_builder function is the main function that orchestrates the process of building a mod. It interacts with a bot, listens for user input, and handles the creation and updating of mod-related files and scripts.
+There are also functions such as create_or_load_main_py, get_functions_and_arguments, create_imports_py, and create_descriptions_txt, which handle file creation, parsing function definitions, and creating import and description files for the mod.
+Overall, the mod_builder.py creates a system that can interact with users through voice input, generate Python scripts using AI models, and facilitate the creation and management of Python mods."
+ 
+Limbic.py:
+"This script defines several functions for analyzing emotions and sentiment in text and audio. Here's a breakdown of the main parts of the code:
+Function 'text_emotion': This function takes a text input, tokenizes it, and uses the Electra model for sentiment analysis. It also includes sample text inputs with pre-labeled emotions for context. The sentiment and emotions detected are then printed and returned.
+Function 'audio_emotion': This function takes an audio file, preprocesses it, and uses the Hubert model to predict the emotion from the audio. The predicted emotion label is printed and returned.
+Function 'update_emotional_history': This function updates and maintains a history of sentiments and emotions for a user by saving the information in a JSON file.
+Function 'determine_bot_feelings': This function uses a GPT-2 model to generate a response based on various inputs such as user and bot profiles, sentiments, and emotions.
+Function 'handle_emotion': This function retrieves the emotional history of a user, identifies common sentiments and emotions, and generates a response using the 'determine_bot_feelings' function.
+Function 'limbic': This function integrates the previous functions to analyze the sentiment and emotions in both text and audio inputs, and generates a response based on the user and bot profiles.
+In summary, the Limbic.py script provides a comprehensive framework for analyzing and managing emotions and sentiment in text and audio interactions."
+
+Hippocampus.py:
+"This script defines several functions for creating and managing user and bot profiles. It includes functions for creating a new user profile, updating the user profile details such as name and bio, and verifying the user's identity through voice recognition. It also has functions for creating a new bot profile, updating the bio of the bot, selecting a voice for the bot, and checking if the user is already known to the system. EDIT: creating a bot now involes generating an avatar for the bot based on user description"
+
+clean_audio.py:
+"This script contains functions for cleaning audio files. It uses various libraries and tools such as Webrtcvad, soundfile, noisereduce, torch, resampy, pydub, audioop, librosa, numpy, and speechbrain.
+The main functions in the code include:
+Applying voice activity detection (VAD) to detect speech segments in the audio.
+Preprocessing the audio by normalizing it, resampling it, and padding it to a specific length.
+Reducing noise in the audio using a noise reduction algorithm.
+Enhancing and separating speech from the audio using pre-trained machine learning models from SpeechBrain.
+Post-processing the enhanced audio by resampling and saving it to a file.
+Overall, the clean_audio.py code is designed to process and enhance audio files by removing noise, detecting speech segments, and enhancing the quality of speech in the audio."
+********************************
+Change-log:
+********************************
+12/9/2023(Chance)"Started Adjusting Limbic.py to attempt incorporating the Vesper model for a more intuitive, realistic emotion recogition. Created a project_log.txt to explain various scripts and keep track of updates."
+********************************
+12/11/2023(Chance)"Still attempting to incorporate the Vesper model may have to look for alternatives that have instructions. Installed ADAM dependencies in Replit workspace."
+********************************
+12/12/2023(Chance)"Swapped out Vesper for Hubert, will probably want to swap back when instructions for the Vesper model are available."
+********************************
+12/13/2023(Chance)"Overhauled the respond.py to incorporate bot avatars and video responses."
+********************************
+
