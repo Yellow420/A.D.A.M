@@ -1,9 +1,9 @@
 # See https://help.github.com/ignore-files/ for more about ignoring files.
 
+*.wav
 
 __pycache__/
-Python-3.8.12/
-/HTRPipeline/
+
 /training_data/
 /user_data/
 

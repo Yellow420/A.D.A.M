@@ -6,7 +6,34 @@ A.D.A.M project script descriptions and change-log.
 Scripts-
 
 main.py:
-"This script manages user interactions through speech and controls the conversation flow based on the detected wake words and user profiles."
+"This script manages user interactions through speech and controls the conversation flow based on the detected wake words and user profiles.
+main.py serves as the entry point for the A.D.A.M project, orchestrating user interactions through speech and managing the conversation flow. Here's a breakdown:
+Initialization:
+Imports necessary modules and libraries.
+Initializes Automatic Multi-Speaker Speech Recognition (AMSSR) module.
+Sets up the main loop.
+User and Bot Creation:
+Checks for existing wake words.
+If no wake words, creates a new user profile and bot.
+If wake words exist, skips user and bot creation.
+Idle Chat Handling:
+Checks for idle.txt and idle timer.
+If conditions met, calls the idle function, resetting the timer.
+Wake Word Detection and Processing:
+Listens for wake words using AMSSR.
+Identifies the wake word and matches it to the corresponding bot profile.
+Checks if the bot is locked; if locked, continues listening for a wake word.
+Speech Segmentation and Wake Word in Additional Input:
+Records additional audio using AMSSR.
+Detects wake word in additional input.
+Matches the bot profile to the wake word.
+Checks if the bot is locked; if locked, exits the second loop.
+Conversation Handling:
+Calls the Brain function to process user profiles, bot profiles, and dialogue.
+Enters a second loop for additional input, allowing for continuous interaction within a 30-second window.
+Processes additional input, including detecting wake words and updating the conversation.
+Error Handling:
+Handles potential errors, such as RequestError or WaitTimeoutError during speech recognition. "
 
 Brain.py:
 "Here's a breakdown of what this script does:
@@ -45,7 +72,7 @@ The "post_answer_to_reddit" function attempts to find a Reddit post based on the
 The "get_random_unanswered_question_from_reddit" function fetches a random unanswered question from Reddit using the praw library.
 The "idle_brain" function handles the actual processing of the question"
 
-import_mods.py:	
+import_mods.py:
 "This script contains several functions for managing imports of Python modules and merging them into existing code.
 The extract_imports function parses the content of a Python file and extracts the import statements, returning them as a single string.
 The merge_imports function reads the contents of two Python files and merges the import statements, as well as the COMMANDS and MAP sections, writing the merged content back to the destination file. It also merges the description files and notifies the user of the successful merge or any errors.
@@ -101,7 +128,7 @@ The update_script function handles the logic for updating a Python script within
 The mod_builder function is the main function that orchestrates the process of building a mod. It interacts with a bot, listens for user input, and handles the creation and updating of mod-related files and scripts.
 There are also functions such as create_or_load_main_py, get_functions_and_arguments, create_imports_py, and create_descriptions_txt, which handle file creation, parsing function definitions, and creating import and description files for the mod.
 Overall, the mod_builder.py creates a system that can interact with users through voice input, generate Python scripts using AI models, and facilitate the creation and management of Python mods."
- 
+
 Limbic.py:
 "This script defines several functions for analyzing emotions and sentiment in text and audio. Here's a breakdown of the main parts of the code:
 Function 'text_emotion': This function takes a text input, tokenizes it, and uses the Electra model for sentiment analysis. It also includes sample text inputs with pre-labeled emotions for context. The sentiment and emotions detected are then printed and returned.
@@ -116,7 +143,7 @@ Hippocampus.py:
 "This script defines several functions for creating and managing user and bot profiles. It includes functions for creating a new user profile, updating the user profile details such as name and bio, and verifying the user's identity through voice recognition. It also has functions for creating a new bot profile, updating the bio of the bot, selecting a voice for the bot, and checking if the user is already known to the system. EDIT: creating a bot now involes generating an avatar for the bot based on user description"
 
 clean_audio.py:
-"This script contains functions for cleaning audio files. It uses various libraries and tools such as Webrtcvad, soundfile, noisereduce, torch, resampy, pydub, audioop, librosa, numpy, and speechbrain.
+"This script contains functions for cleaning up audio. It uses various libraries and tools such as Webrtcvad, soundfile, noisereduce, torch, resampy, pydub, audioop, librosa, numpy, and speechbrain.
 The main functions in the code include:
 Applying voice activity detection (VAD) to detect speech segments in the audio.
 Preprocessing the audio by normalizing it, resampling it, and padding it to a specific length.
@@ -124,15 +151,23 @@ Reducing noise in the audio using a noise reduction algorithm.
 Enhancing and separating speech from the audio using pre-trained machine learning models from SpeechBrain.
 Post-processing the enhanced audio by resampling and saving it to a file.
 Overall, the clean_audio.py code is designed to process and enhance audio files by removing noise, detecting speech segments, and enhancing the quality of speech in the audio."
+
+AMSSR.py: Automatic Multi Speaker Speech Recognition
+AMSSR.py is a Python script that leverages various audio processing libraries and machine learning models to perform Automatic Multi Speaker Speech Recognition. The script incorporates functionalities for recording audio, speaker diarization, audio segmentation, speaker identification, and transcription.
+Key Features:
+Audio Recording: Utilizes PyAudio and SpeechRecognition to capture audio from a specified source, with an option for a timeout.
+Speaker Diarization: Applies a pre-trained speaker diarization model from the Hugging Face model hub (pyannote) to identify distinct speakers in the recorded audio.
+Audio Segmentation: Divides the audio based on speaker diarization results and saves segmented audio clips into a designated directory.
+Speaker Identification: Utilizes a custom module (Temporal) for extracting user profiles and identifying speakers based on audio segments. Unknown speakers are skipped.
+Transcription: Employs the Whisper ASR (Automatic Speech Recognition) model from OpenAI to transcribe individual audio segments. Transcriptions are saved alongside the segmented audio.
+Multimodal Transcription: Extends transcription to multiple segmented audio clips, sorting them based on timestamps. Generates a dialogue incorporating speaker names and their corresponding transcriptions.
+
 ********************************
 Change-log:
 ********************************
-12/9/2023(Chance)"Started Adjusting Limbic.py to attempt incorporating the Vesper model for a more intuitive, realistic emotion recogition. Created a project_log.txt to explain various scripts and keep track of updates."
-********************************
-12/11/2023(Chance)"Still attempting to incorporate the Vesper model may have to look for alternatives that have instructions. Installed ADAM dependencies in Replit workspace."
-********************************
-12/12/2023(Chance)"Swapped out Vesper for Hubert, will probably want to swap back when instructions for the Vesper model are available."
-********************************
 12/13/2023(Chance)"Overhauled the respond.py to incorporate bot avatars and video responses."
 ********************************
-
+1/10/2024(Chance)"Added Emodel/models.py to get EmoGpt and HubertForSpeechClassification, imported EmoGpt and HubertForSpeechClassification from Emodel/models to Limbic.py"
+********************************
+1/29/2024(Chance)"Added AMSSR.py for a new Audio_Recognition Class that includes Automatic Multi Speaker Speech Recognition."
+********************************
