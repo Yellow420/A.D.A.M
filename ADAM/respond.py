@@ -211,7 +211,7 @@ def copy_voice(bot_profile, response):
         wf.writeframes(b''.join(frames))
 
 # Call the create_dataset function to process the new audio
-    create_dataset(audio_path, text_path)
+    create_dataset(bot_profile)
 
     # Check if a model already exists for this bot
     if os.path.exists(model_path):
@@ -711,7 +711,7 @@ def add_subtitles(video_path, subtitles, output_path):
     video_clip.write_videofile(output_path, codec="libx264", audio_codec="aac")
 
 # Function to infer and generate video
-def edit_video(prompt,response, video_in, seed_in, bot_name, user_name, audio_path):
+def edit_video(prompt,response, video_in, seed_in, bot_name, audio_path):
     print(prompt)
 
 
@@ -745,7 +745,7 @@ def edit_video(prompt,response, video_in, seed_in, bot_name, user_name, audio_pa
 
 
 
-    instructions = (f"{bot_name}: This is an image of {bot_name}. {user_name} said to {bot_name}: {prompt}, {bot_name} responded with {response}. Make the image match the dialogue's context and synchronize {bot_name}'s facial expression and mouth with the subtitles currently displayed in the image.")
+    instructions = (f"{bot_name}: This is an image of {bot_name}. The users said to {bot_name}: {prompt}, {bot_name} responded with {response}. Make the image match the dialogue's context and synchronize {bot_name}'s facial expression and mouth with the subtitles currently displayed in the image.")
 
     # Add subtitles to the adjusted video
     output_path = "video_response.mp4"
@@ -836,9 +836,9 @@ def play_video(video_path, image_path):
 
 
 # Function to generate video reponse
-def respond(prompt, response, bot_profile, user_profile, image_path):
+def respond(prompt, response, bot_profile, image_path):
     bot_name = bot_profile['name']
-    user_name = user_profile['name']
+
     audio_path = tts(bot_profile, response)
 
     # Find the bot's avatar image in the "Avatars" folder
@@ -862,6 +862,6 @@ def respond(prompt, response, bot_profile, user_profile, image_path):
     vid, seed_in = pic_to_vid(input_image, stable_randomize_seed, stable_motion_bucket_id, stable_fps_id)
 
     # Generate Pix2Pix video from Stable Video Diffusion result
-    final_vid = edit_video(prompt, response, vid, seed_in, bot_name, user_name, audio_path)
+    final_vid = edit_video(prompt, response, vid, seed_in, bot_name, audio_path)
 
     play_video(final_vid, image_path)

@@ -9,7 +9,8 @@ from ADAM.pictotext import pic_to_text
 from ADAM.texttopic import text_to_pic
 from ADAM.response import response
 from ADAM.Limbic import limbic
-from ADAM.Pineal import pineal
+# from ADAM.Pineal import pineal
+from ADAM.Pineal import gather_web_info
 from ADAM.Hippocampus import update_bio
 from ADAM.respond import bot_speak
 from ADAM.Temporal import get_voice_input
@@ -112,7 +113,8 @@ def idle_brain(user_profile, bot_profile, question):
     with open(autobiography_path, 'r') as file:
         autobiography_text = file.read()
     sentiment, emotions, feelings = limbic(user_profile, bot_profile, final_input)
-    info = pineal(final_input)
+    # info = pineal(final_input)
+    info = gather_web_info(final_input)
     user_history = user_profile['history']
     bot_history = bot_profile['history']
     context = f"user history:{user_history} .bot history: {bot_history}?"

@@ -1,5 +1,5 @@
-#Author: Chance Brownfield
-#Email: ChanceBrownfield@protonmail.com
+# Author: Chance Brownfield
+# Email: ChanceBrownfield@protonmail.com
 import speech_recognition as sr
 from speechbrain.dataio.dataio import read_audio
 import os
@@ -17,6 +17,8 @@ from speechbrain.pretrained import SpeakerRecognition
 from sklearn.mixture import GaussianMixture
 from ADAM.respond import generate_transcription, bot_speak
 from ADAM.clean_audio import clean_audio
+from pyannote.audio import Pipeline
+pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1")
 SAMPLE_RATE = 16000
 BASE_DIR = "user_data"
 MODEL_DIR = os.path.join(BASE_DIR, "user_models")
@@ -103,25 +105,18 @@ def get_voice(bot_profile, prompt):
 
 # Function to get embeddings from audio
 def get_embedding(audio_filename):
-    # Load the SpeechBrain pretrained model for speaker recognition
-    speaker_model = SpeakerRecognition.from_hparams(
-        source="speechbrain/spkrec-ecapa-voxceleb", savedir="pretrained_models/spkrec-ecapa-voxceleb"
-    )
+    # Load the Pyannote pretrained model for speaker diarization
 
-    # Load the audio file using SpeechBrain's dataio
-    signal = sb.dataio.dataio.read_audio(audio_filename)
-    print("Input Audio Shape:", signal.shape)
+    # Apply the pipeline to the audio file
+    diarization = pipeline(audio_filename)
 
-    # Ensure the waveform has a single channel (mono)
-    if signal.shape[0] > 1:
-        signal = torch.mean(signal, dim=0, keepdim=True)
+    # Find the longest speaker segment (assumed to be the main speaker)
+    longest_segment = max(diarization.itertracks(), key=lambda x: x.duration())
 
-    # Extract speaker embeddings using the speaker recognition model
-    with torch.no_grad():
-        # Use encode method instead of encode_batch
-        embedding = speaker_model.encode(signal)
+    # Extract the speaker embedding
+    speaker_embedding = longest_segment.embedding
 
-    return embedding
+    return speaker_embedding
 # Function to get embeddings from audio and save them
 def save_embeddings(user_id, audio_file_path):
     print(f"Saving embeddings for user {user_id}...")
@@ -131,6 +126,7 @@ def save_embeddings(user_id, audio_file_path):
 
     # Save the embeddings
     embeddings_filename = os.path.join(MODEL_DIR, f"user_embeddings_{user_id}.npy")
+    print('temporal.py save embeddings method', embeddings_filename)
     np.save(embeddings_filename, embeddings)
 
     print(f"Embeddings for user {user_id} saved.")
@@ -289,7 +285,7 @@ def train_embeddings_gmm(user_id, audio_file_path):
 
     print(f"Embeddings GMM model for user {user_id} trained and saved.")
 # Function to update the embedding-based zero-shot model
-def update_embedding_zeroshot_gmm(user_id, audio_file_path):
+def update_embedding_zeroshot_gmm():
     print("Training general GMM for embeddings...")
 
     # Combine embeddings of all users
@@ -313,12 +309,14 @@ def update_embedding_zeroshot_gmm(user_id, audio_file_path):
     print("General GMM for embeddings trained and saved.")
 # Combine all functionalities
 def remember_user(user_id, audio_file_path):
+
+    print('temporal remember_user method', audio_file_path)
     save_embeddings(user_id, audio_file_path)
     directory_path = predict_voice_range(user_id, audio_file_path)
     train_audio_gmm(user_id, directory_path)
     update_audio_zeroshot_gmm(user_id)
     train_embeddings_gmm(user_id, audio_file_path)
-    update_embedding_zeroshot_gmm(user_id)
+    update_embedding_zeroshot_gmm()
 
 
 def get_user(audio_filename):

@@ -1,20 +1,45 @@
-#Author: Chance Brownfield
-#Email: ChanceBrownfield@protonmail.com
+# Author: Chance Brownfield
+# Email: ChanceBrownfield@protonmail.com
 from ADAM.clean_audio import clean_audio
 from ADAM.Temporal import remember_user, identification_test, get_user, get_voice_input, get_voice
 from ADAM.respond import select_voice, bot_speak, create_avatar, display_image_box
 from ADAM.is_personal import is_personal, save_personal_info
+from ADAM.AMSSR import Audio_Recognition as ar
 import os
 import sys
 import json
 import speech_recognition as sr
 import pyttsx3
 import pyaudio
+import pygame
 import wave
 import time
 import random
 SAMPLE_RATE = 16000
 BASE_DIR = "user_data"
+ar = ar()
+segmented_audio_dir = "segmented_audio"
+def find_user_texts(user_profile):
+    user_name = user_profile['name']
+    concatenated_text = ""
+
+    for file_name in os.listdir(segmented_audio_dir):
+        if file_name.startswith(user_name):
+            base_name, extension = os.path.splitext(file_name)
+            separator_index = base_name.rfind('_')
+
+            if separator_index != -1:
+                user_name_from_file = base_name[:separator_index]
+                text_path = os.path.join(segmented_audio_dir, f"{user_name_from_file}.txt")
+
+                if os.path.exists(text_path):
+                    with open(text_path, 'r') as text_file:
+                        concatenated_text += text_file.read()
+
+    if concatenated_text:
+        return concatenated_text
+
+    return None  # Return None if no matching text files are found
 
 def bio_check(user_profile, bot_profile):
     user_id = user_profile['id']
@@ -38,8 +63,9 @@ def bio_check(user_profile, bot_profile):
         print(f"User bio for {user_profile['name']} already exists in bot profile {bot_profile['name']}.")
 
 
-def update_bio(text, user_profile, bot_profile):
+def update_bio(user_profile, bot_profile):
     bio_check(user_profile, bot_profile)
+    text = find_user_texts(user_profile)
     # Check if the text is classified as personal
     if is_personal(text):
         # If it's personal, save the personal info
@@ -50,7 +76,6 @@ def update_bio(text, user_profile, bot_profile):
 
 # Function to create a new user profile
 def create_new_user_profile():
-    recognizer = sr.Recognizer()
     engine = pyttsx3.init()
 
     # Name confirmation loop
@@ -58,37 +83,24 @@ def create_new_user_profile():
     while not user_name:
         engine.say("Please state your name.")
         engine.runAndWait()
-        with sr.Microphone() as source:
-            try:
-                user_audio = recognizer.listen(source)  # Adjust the timeout value as needed
-                audio_filename = "user_name_audio.wav"
-                with open(audio_filename, "wb") as f:
-                    f.write(user_audio.get_wav_data())
 
-                processed_audio_file = clean_audio(audio_filename)  # Processing audio
-                if processed_audio_file is None:
-                    continue
+        # Use ASR method for name recognition
+        user_name = ar.ASR(None, 5)
 
-                with sr.AudioFile(processed_audio_file) as source:
-                    audio_data = recognizer.record(source)
-                user_name = recognizer.recognize_google(audio_data)
-                engine.say(f"You said {user_name}, is that correct?")
-                engine.runAndWait()
-                with sr.Microphone() as source:
-                    confirmation_audio = recognizer.listen(source)
-                confirmation = recognizer.recognize_google(confirmation_audio)
-                if 'no' in confirmation.lower():
-                    user_name = ""
-                elif 'yes' in confirmation.lower():  # Confirming the name if 'yes' is said
-                    break  # Exit the loop if the name is confirmed
-                else:
-                    engine.say("I didn't catch that. Let's try again.")
-                    engine.runAndWait()
-                    user_name = ""  # Reset user_name to prompt the user again
-            except sr.UnknownValueError:
-                engine.say("Sorry, I didn't catch that. Could you please repeat your name?")
-                engine.runAndWait()
-                user_name = ""  # Reset user_name to prompt the user again
+        engine.say(f"You said {user_name}, is that correct?")
+        engine.runAndWait()
+
+        confirmation_text = ar.ASR()
+
+        if 'no' in confirmation_text.lower():
+            user_name = ""
+        elif 'yes' in confirmation_text.lower():
+            break
+        else:
+            engine.say("I didn't catch that. Let's try again.")
+            engine.runAndWait()
+            user_name = ""
+
     timestamp = int(time.time())
     user_id = f"{user_name}_{timestamp}"
 
@@ -102,54 +114,29 @@ def create_new_user_profile():
         "history": []
     }
 
-    # Digital Handshake confirmation loop
+    # User bio confirmation loop
     bio = ""
     while not bio:
         engine.say(
-            "Please describe yourself this is how every assistant will be introduced to you everything else they will learn along the way as they get to know you.")
+            "Please describe yourself. This is how every assistant will be introduced to you. Everything else they will learn along the way as they get to know you.")
         engine.runAndWait()
-        with sr.Microphone() as source:
-            user_audio = recognizer.listen(source)
-        try:
-            audio_filename = "digital_handshake_audio.wav"
-            with open(audio_filename, "wb") as f:
-                f.write(user_audio.get_wav_data())
 
-            processed_audio_file = clean_audio(audio_filename)  # Processing audio
-            if processed_audio_file is None:
-                continue
+        bio = ar.ASR()
 
-            with sr.AudioFile(processed_audio_file) as source:
-                audio_data = recognizer.record(source)
-            bio = recognizer.recognize_google(audio_data)
-            engine.say(f"You described yourself as: {bio}, is that correct?")
+        engine.say(f"You described yourself as: {bio}, is that correct?")
+        engine.runAndWait()
+
+        # Use ASR method for confirmation
+        confirmation_audio = ar.ASR()
+
+        if 'no' in confirmation_audio.lower():
+            bio = ""
+        elif 'yes' in confirmation_audio.lower():
+            break  # Exit the loop if the description is confirmed
+        else:
+            engine.say("I didn't catch that. Let's try again.")
             engine.runAndWait()
-            with sr.Microphone() as source:
-                confirmation_audio = recognizer.listen(source)
-            confirmation_audio_filename = "digital_handshake_confirmation_audio.wav"
-            with open(confirmation_audio_filename, "wb") as f:
-                f.write(confirmation_audio.get_wav_data())
-
-            processed_confirmation_audio_file = clean_audio(
-                confirmation_audio_filename)  # Processing confirmation audio
-            if processed_confirmation_audio_file is None:
-                continue
-
-            with sr.AudioFile(processed_confirmation_audio_file) as source:
-                confirmation_audio_data = recognizer.record(source)
-            confirmation = recognizer.recognize_google(confirmation_audio_data)
-            if 'no' in confirmation.lower():
-                bio = ""
-            elif 'yes' in confirmation.lower():
-                break  # Exit the loop if the description is confirmed
-            else:
-                engine.say("I didn't catch that. Let's try again.")
-                engine.runAndWait()
-                bio = ""  # Reset digital_handshake to prompt the user again
-        except sr.UnknownValueError:
-            engine.say("Sorry, I didn't catch that. Could you please confirm again?")
-            engine.runAndWait()
-            bio = ""  # Reset digital_handshake to prompt the user again
+            bio = ""
 
     profile_file = os.path.join(user_dir, "profile.json")
     with open(profile_file, "w") as profile_json:
@@ -195,7 +182,7 @@ def create_new_user_profile():
         engine.runAndWait()
         with sr.Microphone() as source:
             print("Listening for test phrase...")
-            test_audio = recognizer.listen(source)
+            test_audio = ar.listen_and_record(source)
         test_audio_filename = os.path.join(user_dir, "test_audio.wav")
         with open(test_audio_filename, "wb") as f:
             f.write(test_audio.get_wav_data())
@@ -404,7 +391,7 @@ def create_new_bot(user_profile):
 
         print(f"{bot_name} has been created successfully!")
         engine.say(f"{bot_name} has been created successfully!")
-        engine.runAndWait() 
+        engine.runAndWait()  # Ensure the text is spoken before the function returns
         return bot_profile
 
 def update_user_profile(user_profile):

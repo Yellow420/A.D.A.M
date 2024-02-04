@@ -3,17 +3,20 @@
 import os
 import json
 from collections import Counter
+import torch.nn.functional as F
 import torch
-from transformers import ElectraTokenizer, ElectraForSequenceClassification, GPT2LMHeadModel, GPT2Tokenizer, AutoProcessor, HubertForSpeechClassification
-import soundfile as sf
+from ADAM.Emodel.models import HubertForSpeechClassification, EmoGpt
+from transformers import ElectraTokenizer, ElectraForSequenceClassification, Wav2Vec2FeatureExtractor, AutoConfig, AutoProcessor
+from pydub import AudioSegment
+import numpy as np
+segmented_audio_dir = "segmented_audio"
+
 #Load Models
 electratokenizer = ElectraTokenizer.from_pretrained('google/electra-small-discriminator')
 electramodel = ElectraForSequenceClassification.from_pretrained('google/electra-small-discriminator')
-gpttokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
-gptmodel = GPT2LMHeadModel.from_pretrained("distilgpt2")
-print('%%%%%%')
 hubertmodel = HubertForSpeechClassification.from_pretrained("Rajaram1996/Hubert_emotion")
 hubertfeature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("facebook/hubert-base-ls960")
+emo_gpt_model = EmoGpt()
 sampling_rate = 16000
 hubertconfig = AutoConfig.from_pretrained("Rajaram1996/Hubert_emotion")
 
@@ -22,11 +25,11 @@ def speech_file_to_array(path, sampling_rate):
         sound = sound.set_frame_rate(sampling_rate)
         sound_array = np.array(sound.get_array_of_samples())
         return sound_array
-def text_emotion(final_input):
-    print(f"\n{final_input}\n")
+def text_emotion(txt):
+    print(f"\n{txt}\n")
 
     # Tokenize the input for Electra
-    inputs = electratokenizer(final_input, return_tensors="pt")
+    inputs = electratokenizer(txt, return_tensors="pt")
 
     # Use Electra for sentiment and emotion analysis
     with torch.no_grad():
@@ -112,11 +115,11 @@ def text_emotion(final_input):
             emotion_mapping[label] = text
 
     # Tokenize emotion examples
-    emotion_inputs = tokenizer(list(emotion_mapping.values()), return_tensors="pt", padding=True, truncation=True)
+    emotion_inputs = electratokenizer(list(emotion_mapping.values()), return_tensors="pt", padding=True, truncation=True)
 
     # Use Electra for emotion analysis
     with torch.no_grad():
-        emotion_outputs = model(**emotion_inputs)
+        emotion_outputs = electramodel(**emotion_inputs)
 
     # Extract emotion from Electra's output (this is a simplified example)
     emotion_scores = torch.argmax(emotion_outputs.logits, dim=1)
@@ -129,7 +132,7 @@ def text_emotion(final_input):
 
     return sentiment, emotions
 
-def audio_emotion(audio_file_path):
+def audio_emotion(audio_file):
      # Preprocess audio file for Hubert
     sound_array = speech_file_to_array(audio_file, sampling_rate)
     inputs = hubertfeature_extractor(sound_array, sampling_rate=sampling_rate, return_tensors="pt", padding=True)
@@ -163,45 +166,45 @@ def update_emotional_history(bot_profile, user_profile, sentiment, emotion, emot
     else:
         user_emotional_history = {
             'sentiments': {},
-            'emotions': {}
+            'emotion1': {},
+            'emotion2': {}
         }
 
     # Trim any extra characters like '.' from sentiment and emotion variables
     sentiment = sentiment.strip('.')
     emotion = emotion.strip('.')
+    emotion2 = emotion2.strip('.')
 
-    # Increment sentiment and emotion counts
+    # Increment sentiment, emotion, and emotion2 counts
     user_emotional_history['sentiments'][sentiment] = user_emotional_history['sentiments'].get(sentiment, 0) + 1
-    user_emotional_history['emotions'][emotion] = user_emotional_history['emotions'].get(emotion, 0) + 1
+    user_emotional_history['emotion1'][emotion] = user_emotional_history['emotion1'].get(emotion, 0) + 1
+    user_emotional_history['emotion2'][emotion2] = user_emotional_history['emotion2'].get(emotion2, 0) + 1
 
     with open(emotion_history_file, 'w') as file:
         json.dump(user_emotional_history, file)
 
     return emotion_history_file
 
-def determine_bot_feelings(common_emotions,common_sentiment, sentiment, emotion, emotion2, bot_profile, user_profile):
+def determine_bot_feelings(dialogue, common_emotions,common_sentiment, sentiment, emotion, emotion2, bot_profile, user_profile):
     user_name = user_profile['name']
     bot_name = bot_profile['name']
     user_bio = user_profile['bio']
     bot_bio = bot_profile['bio']
     # Create a prompt
     prompt = (
+        f"{dialogue}. "
         f"{user_name} is {user_bio} and {bot_name} is {bot_bio}. "
         f"{user_name} usually acts {common_emotions} and {common_sentiment} towards {bot_name}. "
         f"{user_name} is currently being {sentiment}, the words they used expressed {emotion}, but the sound of their voice expressed {emotion2}. " 
         f"How would {bot_name} likely feel about {user_name} and what would {bot_name}'s current emotions be?"
     )
 
-    # Tokenize input and generate output
-    input_ids = gpttokenizer.encode(prompt, return_tensors="pt")
-    output = gptmodel.generate(input_ids, max_length=150, num_return_sequences=1, no_repeat_ngram_size=2)
-
-    # Decode the generated output
-    bot_feelings = gpttokenizer.decode(output[0], skip_special_tokens=True).strip()
+    # Use EmoGpt to predict bot feelings and emotion
+    bot_feelings = emo_gpt_model.generate(prompt)
 
     return bot_feelings
 
-def handle_emotion(bot_profile, user_profile, sentiment, emotion, emotion2):
+def handle_emotion(dialogue, bot_profile, user_profile, sentiment, emotion, emotion2):
     emotion_history_file=update_emotional_history(bot_profile, user_profile, sentiment, emotion, emotion2)
 
 
@@ -218,12 +221,45 @@ def handle_emotion(bot_profile, user_profile, sentiment, emotion, emotion2):
 
     emotion_counter = Counter(emotions)
     common_emotions = emotion_counter.most_common(3)
-    feelings=determine_bot_feelings(common_emotions,common_sentiment, sentiment, emotion, emotion2, bot_profile, user_profile)
+    feelings=determine_bot_feelings(dialogue, common_emotions, common_sentiment, sentiment, emotion, emotion2, bot_profile, user_profile)
 
     return feelings
 
-def limbic(user_profile, bot_profile, final_input, audio_file_path):
-    sentiment, emotion = text_emotion(final_input)
-    emotion2 = audio_emotion(audio_file_path)
-    feelings = handle_emotion(bot_profile, user_profile, sentiment, emotion, emotion2)
+
+def find_matching_files(user_name):
+    for file_name in os.listdir(segmented_audio_dir):
+        if file_name.startswith(user_name):
+            base_name, extension = os.path.splitext(file_name)
+            separator_index = base_name.rfind('_')
+
+            if separator_index != -1:
+                user_name_from_file = base_name[:separator_index]
+                text_path = os.path.join(segmented_audio_dir, f"{user_name_from_file}.txt")
+                audio_path = os.path.join(segmented_audio_dir, f"{user_name_from_file}.wav")
+
+                if os.path.exists(text_path) and os.path.exists(audio_path):
+                    return audio_path, text_path
+
+    return None, None  # Return None if matching files are not found
+
+def limbic(user_profile, bot_profile, dialogue):
+    # Find the matching audio and text files in the segmented_audio_dir
+    user_audio_path, user_text_path = find_matching_files(user_profile['name'])
+
+    if user_audio_path is None or user_text_path is None:
+        return None  # Handle case where matching files are not found
+
+    # Load text from the matching text file
+    with open(user_text_path, 'r') as text_file:
+        user_text = text_file.read()
+
+    # Perform sentiment and emotion analysis on the loaded text
+    sentiment, emotion = text_emotion(user_text)
+
+    # Analyze audio emotion
+    emotion2 = audio_emotion(user_audio_path)
+
+    # Handle emotions and update emotional history
+    feelings = handle_emotion(dialogue, bot_profile, user_profile, sentiment, emotion, emotion2)
+
     return sentiment, emotion, emotion2, feelings

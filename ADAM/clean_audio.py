@@ -168,17 +168,12 @@ def save_and_play(audio, sr, filename='temp.wav'):
     sf.write(filename, audio, sr)
 
 
-def clean_audio(audio_filename):
-    # Load the audio file
-    audio, sample_rate = sf.read(audio_filename)
-    print("Input Audio Shape:", audio.shape)
+def clean_audio(audio_data, sample_rate=44100):
+
 
     # Apply noise reduction
-    audio_denoised = reduce_noise(audio, sample_rate, noise_sample_length=10000, prop_decrease=1.0)
+    audio_denoised = reduce_noise(audio_data, sample_rate, noise_sample_length=10000, prop_decrease=1.0)
 
-    # Save the processed audio back to audio_filename
-    sf.write(audio_filename, audio_denoised, sample_rate)
-    print("Input Audio Shape:", audio.shape)
     # Prepare audio for VAD (this will handle the conversion to 16-bit PCM and resampling)
     audio_denoised_resampled, new_sample_rate = prepare_for_vad(audio_denoised, sample_rate)
 
@@ -194,9 +189,8 @@ def clean_audio(audio_filename):
     if len(speech_audio) == 0:
         print("No segments containing speech were found.")
         return None  # Return None if no speech segments were found
-    print("Input Audio Shape:", audio.shape)
 
     # Additional step: Perform final speech enhancement and separation using SpeechBrain
-    #enhanced_audio, enhanced_sample_rate = enhance_and_separate_speech('post_proc.wav', new_sample_rate)
-    #cleaned_audio = post_enhance(enhanced_audio, enhanced_sample_rate)
+    # enhanced_audio, enhanced_sample_rate = enhance_and_separate_speech('post_proc.wav', new_sample_rate)
+    # cleaned_audio = post_enhance(enhanced_audio, enhanced_sample_rate)
     return 'post_proc.wav'  # Return the path to the processed audio file

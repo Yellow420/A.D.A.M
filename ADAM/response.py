@@ -6,7 +6,7 @@ import datetime
 tokenizer = AutoTokenizer.from_pretrained("microsoft/GODEL-v1_1-base-seq2seq")
 model = AutoModelForSeq2SeqLM.from_pretrained("microsoft/GODEL-v1_1-base-seq2seq")
 
-def response(instruction, context, knowledge, dialog):
+def response(instruction='', context='', knowledge='', dialog=[]):
     if knowledge != '':
         knowledge = '[KNOWLEDGE] ' + knowledge
     dialog = ' EOS '.join(dialog)
