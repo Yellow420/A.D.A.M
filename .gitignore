@@ -3,7 +3,8 @@
 *.wav
 
 __pycache__/
-
+/.idea/
+/.github/
 /training_data/
 /user_data/
 

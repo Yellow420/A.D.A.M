@@ -3,18 +3,19 @@
 import pyaudio
 import os
 import torch
-import speech_recognition as sr
 from pyannote.audio import Pipeline
 from pydub import AudioSegment
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline as stt
 from ADAM.Temporal import get_user
 from ADAM.clean_audio import clean_audio
+from faster_whisper import WhisperModel
 
 class Audio_Recognition:
     def __init__(self):
         self.segmented_audio_dir = "segmented_audio"
+        self.whisper_model = WhisperModel("large-v3")
 
-    def listen_and_record(self, source=None, timeout=10):
+    def listen_and_record(self, source=None, timeout=None, text=None, earlystop=None):
         CHUNK = 1024
         FORMAT = pyaudio.paInt16
         CHANNELS = 1
@@ -33,23 +34,52 @@ class Audio_Recognition:
                                                                                      input=True,
                                                                                      frames_per_buffer=CHUNK)
 
-        recognizer = sr.Recognizer()
-
         print("Listening...")
 
-        audio_data = None
+        audio_data = b""  # Initialize as byte string
+        speech_detected = False
+        silence_count = 0
 
         try:
-            if source is not None:
-                print("Listening...1")
-                with sr.Microphone(device_index=source) as src:
-                    audio_data = recognizer.listen(src, timeout=timeout)
-            else:
-                print("Listening...2")
-                with sr.Microphone() as src:
-                    audio_data = recognizer.listen(src, timeout=timeout)
-        except sr.WaitTimeoutError:
-            print("Timeout reached. Recording stopped.")
+            while True:
+                audio_chunk = stream.read(CHUNK)
+                audio_data += audio_chunk  # Concatenate chunks into one audio stream
+
+                # Check if audio chunk contains speech
+                if self.whisper_model.is_speech(audio_chunk):
+                    speech_detected = True
+                    silence_count = 0  # Reset silence count
+
+                # If speech was detected but now it's silent, increment silence count
+                if speech_detected and not self.whisper_model.is_speech(audio_chunk):
+                    silence_count += 1
+
+                # Check if timeout is reached and stop recording if timeout is specified
+                if timeout and silence_count * CHUNK / RATE >= timeout:
+                    print("Timeout reached. Recording stopped.")
+                    if text == None:
+                        return self.whisper_model.transcribe(audio_data), audio_data
+                    elif text == "true":
+                        return self.whisper_model.transcribe(audio_data)
+                    elif text == "false":
+                        return audio_data
+                    else:
+                        return None
+
+                # Check if early stop is requested and stop recording if time limit is reached
+                if earlystop and (earlystop * RATE / CHUNK <= silence_count):
+                    print("Early stop. Recording stopped.")
+                    if text == None:
+                        return self.whisper_model.transcribe(audio_data), audio_data
+                    elif text == "true":
+                        return self.whisper_model.transcribe(audio_data)
+                    elif text == "false":
+                        return audio_data
+                    else:
+                        return None
+
+        except KeyboardInterrupt:
+            print("Recording stopped.")
 
         print("Finished recording.")
 
@@ -57,7 +87,14 @@ class Audio_Recognition:
         stream.close()
         p.terminate()
 
-        return audio_data
+        if text == None:
+            return self.whisper_model.transcribe(audio_data), audio_data
+        elif text == "true":
+            return self.whisper_model.transcribe(audio_data)
+        elif text == "false":
+            return audio_data
+        else:
+            return None
 
 
     def speaker_diarization(self, audio_data):
@@ -245,25 +282,17 @@ class Audio_Recognition:
             # Return the dialogue string
         return dialogue
 
-    def ASR(self, source=None, timeout=None):
+    def ASR(self, source=None, timeout=None, earlystop=None):
         # Step 1: Record audio
-        audio_data = self.listen_and_record(source, timeout)
-        cleaned_audio = clean_audio(audio_data)
-        # Step 2: Perform speaker diarization
-        diarization_result = self.speaker_diarization(cleaned_audio)
-
-        # Check if diarization found no speakers/speech
-        if not diarization_result:
-            return "", []
-
-        # Step 5: Transcribe each audio segment
-        dialogue = self.transcribe_audio(cleaned_audio)
+        text = "true"
+        dialogue = self.listen_and_record(source, timeout, text, earlystop)
 
         return dialogue
 
-    def AMSSR(self, source=None, timeout=None):
+    def AMSSR(self, source=None, timeout=None, earlystop=None):
         # Step 1: Record audio
-        audio_data = clean_audio(self.listen_and_record(source, timeout))
+        text = "false"
+        audio_data = clean_audio(self.listen_and_record(source, timeout, text, earlystop))
         # Step 2: Perform speaker diarization
         diarization_result = self.speaker_diarization(audio_data)
 

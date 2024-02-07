@@ -25,6 +25,7 @@ docopt
 easyocr
 editdistance
 fasttext
+faster-whisper
 filelock
 flatbuffers
 fonttools
