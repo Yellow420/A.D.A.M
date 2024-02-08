@@ -15,12 +15,7 @@ class Audio_Recognition:
         self.segmented_audio_dir = "segmented_audio"
         self.whisper_model = WhisperModel("large-v3")
 
-    def listen_and_record(self, source=None, timeout=None, text=None, earlystop=None):
-        CHUNK = 1024
-        FORMAT = pyaudio.paInt16
-        CHANNELS = 1
-        RATE = 44100
-
+    def record_audio(self, source=None, timeout=None, text=None, earlystop=None, CHUNK=1024, FORMAT=pyaudio.paInt16, CHANNELS=1, RATE=44100):
         p = pyaudio.PyAudio()
 
         stream = p.open(format=FORMAT,
@@ -57,26 +52,12 @@ class Audio_Recognition:
                 # Check if timeout is reached and stop recording if timeout is specified
                 if timeout and silence_count * CHUNK / RATE >= timeout:
                     print("Timeout reached. Recording stopped.")
-                    if text == None:
-                        return self.whisper_model.transcribe(audio_data), audio_data
-                    elif text == "true":
-                        return self.whisper_model.transcribe(audio_data)
-                    elif text == "false":
-                        return audio_data
-                    else:
-                        return None
+                    return self.handle_record_result(text, audio_data)
 
                 # Check if early stop is requested and stop recording if time limit is reached
                 if earlystop and (earlystop * RATE / CHUNK <= silence_count):
                     print("Early stop. Recording stopped.")
-                    if text == None:
-                        return self.whisper_model.transcribe(audio_data), audio_data
-                    elif text == "true":
-                        return self.whisper_model.transcribe(audio_data)
-                    elif text == "false":
-                        return audio_data
-                    else:
-                        return None
+                    return self.handle_record_result(text, audio_data)
 
         except KeyboardInterrupt:
             print("Recording stopped.")
@@ -87,7 +68,10 @@ class Audio_Recognition:
         stream.close()
         p.terminate()
 
-        if text == None:
+        return self.handle_record_result(text, audio_data)
+
+    def handle_record_result(self, text, audio_data):
+        if text is None:
             return self.whisper_model.transcribe(audio_data), audio_data
         elif text == "true":
             return self.whisper_model.transcribe(audio_data)
@@ -96,6 +80,8 @@ class Audio_Recognition:
         else:
             return None
 
+    def listen_and_record(self, source=None, timeout=None, text=None, earlystop=None):
+        return self.record_audio(source, timeout, text=text, earlystop=earlystop)
 
     def speaker_diarization(self, audio_data):
         # load the pipeline from Huggingface Hub
@@ -184,7 +170,7 @@ class Audio_Recognition:
 
         return user_profiles
 
-    def transcribe_audio(self, audio_path):
+    def transcribe_audio_common(self, audio_path, is_multi=False):
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
         torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
@@ -215,71 +201,38 @@ class Audio_Recognition:
         result = pipe(audio_path)
 
         # Get the transcribed text
-        dialogue = result["text"]
+        transcribed_text = result["text"]
 
         # Save the transcribed text to a file
         transcript_file_path = os.path.join(
             self.segmented_audio_dir,
             f"{os.path.basename(audio_path)}_transcript.txt")
         with open(transcript_file_path, 'w') as transcript_file:
-            transcript_file.write(dialogue)
+            transcript_file.write(transcribed_text)
 
-        # Return the transcribed text
-        return dialogue
+        # If it's a single audio file, return the transcribed text directly
+        if not is_multi:
+            return transcribed_text
+
+        # If it's for multiple audio files, return a tuple with the speaker name and transcribed text
+        speaker = os.path.splitext(os.path.basename(audio_path))[0].split('_')[0]
+        return speaker, transcribed_text
+
+    def transcribe_audio(self, audio_path):
+        return self.transcribe_audio_common(audio_path)
 
     def transcribe_multi_audio(self, segmented_audios):
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-
-        model_id = "openai/whisper-large-v3"
-
-        model = AutoModelForSpeechSeq2Seq.from_pretrained(
-            model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
-        )
-        model.to(device)
-
-        processor = AutoProcessor.from_pretrained(model_id)
-
-        pipe = stt(
-            "automatic-speech-recognition",
-            model=model,
-            tokenizer=processor.tokenizer,
-            feature_extractor=processor.feature_extractor,
-            max_new_tokens=128,
-            chunk_length_s=30,
-            batch_size=16,
-            return_timestamps=True,
-            torch_dtype=torch_dtype,
-            device=device,
-            generate_kwargs={"language": "english"}  # Specify the target language as English
-        )
-
-        # Sort segmented audios based on timestamp in the file name
         segmented_audios.sort(key=lambda x: float(os.path.splitext(os.path.basename(x))[0].split('_')[1]))
 
         dialogue = ""
 
         for audio_path in segmented_audios:
-            # Extract speaker name and timestamp from the file name
-            file_name = os.path.basename(audio_path)
-            speaker, timestamp = os.path.splitext(file_name)[0].split('_')
+            # Call the common transcribe method for each audio file
+            speaker, transcribed_text = self.transcribe_audio_common(audio_path, is_multi=True)
 
-            # Transcribe the audio using Whisper
-            result = pipe(audio_path)
-
-            # Get the transcribed text
-            transcribed_text = result["text"]
-
-            # Save the transcribed text to a file
-            transcript_file_path = os.path.join(self.segmented_audio_dir,
-                                                f"{file_name}transcript.txt")
-            with open(transcript_file_path, 'w') as transcript_file:
-                transcript_file.write(transcribed_text)
-
-            # Add the transcribed text to the dialogue
+            # Add the speaker and transcribed text to the dialogue
             dialogue += f"{speaker} said: \"{transcribed_text}\"\n"
 
-            # Return the dialogue string
         return dialogue
 
     def ASR(self, source=None, timeout=None, earlystop=None):

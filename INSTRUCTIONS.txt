@@ -66,3 +66,4 @@ Users can manage idle chat settings by issuing the command "idle chat settings,"
 Response Mechanism:
 
 Following a user's query, ADAM remains attentive for 10 seconds, anticipating further interaction. If the user speaks within this timeframe without using a wake word, ADAM assumes continued engagement with the same assistant. After the 10-second window elapses, ADAM returns to listening for a wake word, refraining from response until its name is mentioned.
+
