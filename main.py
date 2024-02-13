@@ -7,7 +7,7 @@ import time
 from ADAM.Brain import Brain
 from ADAM.Hippocampus import create_new_user_profile, create_new_bot, get_bot
 from ADAM.idle import idle
-from ADAM.AMSSR import Audio_Recognition as ar
+from ADAM.AudioRecognition import Audio_Recognition as ar
 from ADAM.Locker import is_locked
 asr = ar()
 
