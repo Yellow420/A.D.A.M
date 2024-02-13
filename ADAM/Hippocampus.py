@@ -4,7 +4,7 @@ from ADAM.clean_audio import clean_audio
 from ADAM.Temporal import remember_user, identification_test, get_user, get_voice_input, get_voice
 from ADAM.respond import select_voice, bot_speak, create_avatar, display_image_box
 from ADAM.is_personal import is_personal, save_personal_info
-from ADAM.AMSSR import Audio_Recognition as ar
+from ADAM.AudioRecognition import Audio_Recognition as ar
 import os
 import sys
 import json
