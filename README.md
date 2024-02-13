@@ -6,7 +6,9 @@ A.D.A.M, standing for A Digital Assistant Manager, is an advanced digital assist
 
  Speech Recognition: Utilizes my custom AMSSR to capture and interpret user speech, enabling a dynamic conversational experience. Conversation Flow: The main script (main.py) orchestrates conversation flow, handling wake word detection, user and bot creation, and idle chat management. Modular Architecture: A.D.A.M is built with modularity in mind, featuring various scripts (Brain.py, response.py, Motor.py, etc.) to handle distinct functionalities.
 
- User Interaction: Brain.py processes user input, generates responses, and updates user and bot histories, adapting to emotional states through sentiment analysis (Limbic.py). Speech and Audio Processing: AMSSR.py seamlessly integrates speaker diarization, audio segmentation, and transcription for effective understanding and response to audio inputs.
+ User Interaction: Brain.py processes user input, generates responses, and updates user and bot histories, adapting to emotional states through sentiment analysis (Limbic.py). 
+
+Speech and Audio Processing: The AudioRecognition.py seamlessly integrates speaker diarization, audio segmentation, and transcription for fast, effective and flexible speech recognition.
 
  Scripting Capabilities: mod_builder.py facilitates the creation and management of Python mods, extending the assistant's capabilities through custom scripts. Please check te projoct_log.txt for more info on ADAM and its scripts.
 
