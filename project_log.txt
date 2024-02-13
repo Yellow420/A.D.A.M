@@ -152,16 +152,48 @@ Enhancing and separating speech from the audio using pre-trained machine learnin
 Post-processing the enhanced audio by resampling and saving it to a file.
 Overall, the clean_audio.py code is designed to process and enhance audio files by removing noise, detecting speech segments, and enhancing the quality of speech in the audio."
 
-AMSSR.py: Automatic Multi Speaker Speech Recognition
-AMSSR.py is a Python script that leverages various audio processing libraries and machine learning models to perform Automatic Multi Speaker Speech Recognition. The script incorporates functionalities for recording audio, speaker diarization, audio segmentation, speaker identification, and transcription.
-Key Features:
-Audio Recording: Utilizes PyAudio and SpeechRecognition to capture audio from a specified source, with an option for a timeout.
-Speaker Diarization: Applies a pre-trained speaker diarization model from the Hugging Face model hub (pyannote) to identify distinct speakers in the recorded audio.
-Audio Segmentation: Divides the audio based on speaker diarization results and saves segmented audio clips into a designated directory.
-Speaker Identification: Utilizes a custom module (Temporal) for extracting user profiles and identifying speakers based on audio segments. Unknown speakers are skipped.
-Transcription: Employs the Whisper ASR (Automatic Speech Recognition) model from OpenAI to transcribe individual audio segments. Transcriptions are saved alongside the segmented audio.
-Multimodal Transcription: Extends transcription to multiple segmented audio clips, sorting them based on timestamps. Generates a dialogue incorporating speaker names and their corresponding transcriptions.
-
+(edit)AudioRecognition.py: Automatic Speech Recognition with Multi Speaker Speech Recognition
+__init__(self): This is the constructor method that initializes the class. It sets up the segmented_audio_dir attribute, which is the directory where segmented audio files will be stored.
+capture_audio(self, source=None, timeout=None, hotword=None): This method captures audio data using the SpeechRecognition library. It can capture audio from a specified source (such as a file or microphone) and allows optional parameters for setting a timeout or enabling hotword detection.
+speaker_diarization(self, audio_data): This method performs speaker diarization on the input audio data. It uses the pyannote.audio library to apply a pre-trained speaker diarization pipeline to the audio.
+segment_audio(self, audio_data, diarization_result): This method segments the input audio based on the speaker diarization result. It extracts segments corresponding to different speakers and saves them as individual audio files in the segmented_audio_dir.
+identify_speakers(self, segmented_audios): This method identifies speakers in the segmented audio files. It may use external tools or models to recognize speakers based on their voice characteristics.
+transcribe_audio(self, audio_data): This method transcribes the input audio data into text. It may use models or libraries for automatic speech recognition (ASR) to perform the transcription.
+transcribe_audio_file(self, audio_path): This method transcribes an audio file specified by its path. It internally calls capture_audio to obtain the audio data and then transcribes it using transcribe_audio.
+transcribe_multi_audio(self, segmented_audios): This method transcribes multiple audio files. It iterates over a list of segmented audio files, captures the audio data for each file, and transcribes it using transcribe_audio_file.
+ASR(self, source=None, output="both", timeout=None, stop=0, stoptime=None, hotword=None): This method performs automatic speech recognition (ASR) on audio data. It supports various options such as specifying the source, setting a timeout, enabling hotword detection, and controlling the number of iterations or stop time.
+AMSSR(self, source=None, timeout=None, stop=0, stoptime=None, hotword=None): This method performs ASR with speaker recognition. It includes additional steps such as speaker diarization, segmenting the audio, identifying speakers, and transcribing each audio segment.
+Audio_Recognition Class Use Examples[
+        Basic Speech Recognition:
+          recognizer = Audio_Recognition()
+          audio_data = recognizer.capture_audio()
+          transcribed_text = recognizer.transcribe_audio(audio_data)
+          print(transcribed_text)
+        Speaker Diarization:
+          recognizer = Audio_Recognition()
+          audio_data = recognizer.capture_audio(source="audio_file.wav")
+          diarization_result = recognizer.speaker_diarization(audio_data)
+        Segment Audio based on Diarization:
+          segmented_audios = recognizer.segment_audio(audio_data, diarization_result)
+        Identify Speakers in Segmented Audio:
+          user_profiles = recognizer.identify_speakers(segmented_audios)
+        Transcribe Multiple Audio Segments:
+          dialogue = recognizer.transcribe_multi_audio(segmented_audios)
+        Perform ASR (Automatic Speech Recognition):
+          dialogue = recognizer.ASR(source="audio_file.wav")
+        Perform ASR with Speaker Recognition:
+          dialogue, user_profiles = recognizer.AMSSR(source="audio_file.wav")
+        Perform ASR with Hotword Detection:
+          dialogue = recognizer.ASR(source=None, hotword="snowboy_config.json")
+        Perform ASR with Timeout:
+          dialogue = recognizer.ASR(source=None, timeout=5)
+        Perform ASR with a Limit on the Number of Iterations:
+          dialogue = recognizer.ASR(source=None, stop=5)
+        Perform ASR with a Stop Time:
+          dialogue = recognizer.ASR(source=None, stoptime=60)
+        Perform ASR with Both Text and Audio Output:
+          result_text, result_audio = recognizer.ASR(source="audio_file.wav", output="b.
+    ]
 ********************************
 Change-log:
 ********************************
@@ -170,4 +202,6 @@ Change-log:
 1/10/2024(Chance)"Added Emodel/models.py to get EmoGpt and HubertForSpeechClassification, imported EmoGpt and HubertForSpeechClassification from Emodel/models to Limbic.py"
 ********************************
 1/29/2024(Chance)"Added AMSSR.py for a new Audio_Recognition Class that includes Automatic Multi Speaker Speech Recognition."
+********************************
+2/12/2024(Chance)"Updated AMSSR.py to AudioRecognition.py."
 ********************************
